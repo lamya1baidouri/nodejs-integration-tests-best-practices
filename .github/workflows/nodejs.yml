@@ -10,6 +10,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      cache-hit: ${{ steps.cache-nodemodules.outputs.cache-hit }}
     steps:
       - uses: actions/checkout@v2
 
@@ -31,25 +33,21 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Install Docker Compose
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y docker-compose
-
       - name: Install Dependencies
         if: steps.cache-nodemodules.outputs.cache-hit != 'true'
         run: npm ci
 
   test:
-    needs: build
+    needs: install
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
 
-      - name: Use Node.js (.nvmrc)
-        uses: actions/setup-node@v2
-        with:
-          node-version: "${{ steps.nvm.outputs.NVMRC }}"
+      - name: Install Docker Compose
+        if: needs.install.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose
 
       - name: Restore cache
         uses: actions/cache@v2
@@ -57,18 +55,21 @@ jobs:
           path: node_modules
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
 
-      - run: npm test
+      - name: Run tests
+        if: needs.install.outputs.cache-hit != 'true'
+        run: npm test
 
   test-nestjs:
-    needs: build
+    needs: install
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
 
-      - name: Use Node.js (.nvmrc)
-        uses: actions/setup-node@v2
-        with:
-          node-version: "${{ steps.nvm.outputs.NVMRC }}"
+      - name: Install Docker Compose
+        if: needs.install.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose
 
       - name: Restore cache
         uses: actions/cache@v2
@@ -76,18 +77,21 @@ jobs:
           path: node_modules
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
 
-      - run: npm run test:nestjs
+      - name: Run NestJS tests
+        if: needs.install.outputs.cache-hit != 'true'
+        run: npm run test:nestjs
 
   test-mocha:
-    needs: build
+    needs: install
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
 
-      - name: Use Node.js (.nvmrc)
-        uses: actions/setup-node@v2
-        with:
-          node-version: "${{ steps.nvm.outputs.NVMRC }}"
+      - name: Install Docker Compose
+        if: needs.install.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose
 
       - name: Restore cache
         uses: actions/cache@v2
@@ -95,4 +99,6 @@ jobs:
           path: node_modules
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
 
-      - run: npm run test:mocha
+      - name: Run Mocha tests
+        if: needs.install.outputs.cache-hit != 'true'
+        run: npm run test:mocha
