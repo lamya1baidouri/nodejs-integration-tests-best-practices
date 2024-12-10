@@ -37,8 +37,8 @@ jobs:
         if: steps.cache-nodemodules.outputs.cache-hit != 'true'
         run: npm ci
 
-  test:
-    needs: build
+  test-1:
+    needs: build  # Premier test dépend toujours de build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -51,15 +51,11 @@ jobs:
         with:
           path: node_modules
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-      - run: npm test
+      - name: Run first test suite
+        run: npm test
 
-  test-nestjs:
-    needs: build
-    if: |
-      github.event_name == 'push' && 
-      (contains(github.event.head_commit.modified, 'example-application/readme.md') ||
-       contains(github.event.head_commit.added, 'example-application/readme.md') ||
-       contains(github.event.head_commit.removed, 'example-application/readme.md'))
+  test-2:
+    needs: test-1  # Dépend du test précédent
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -72,10 +68,11 @@ jobs:
         with:
           path: node_modules
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-      - run: npm run test:nestjs
+      - name: Run NestJS tests
+        run: npm run test:nestjs
 
-  test-mocha:
-    needs: build
+  test-3:
+    needs: test-2  # Dépend du test précédent
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -88,4 +85,5 @@ jobs:
         with:
           path: node_modules
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-      - run: npm run test:mocha
+      - name: Run Mocha tests
+        run: npm run test:mocha
