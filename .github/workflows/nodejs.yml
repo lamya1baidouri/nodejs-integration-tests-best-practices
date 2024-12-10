@@ -1,3 +1,4 @@
+
 name: Node.js CI
 
 on:
@@ -24,18 +25,24 @@ jobs:
         with:
           node-version: "${{ steps.nvm.outputs.NVMRC }}"
 
-      - name: Cache node modules
+      - name: Cache node modules and docker compose
         uses: actions/cache@v2
         id: cache-nodemodules
         with:
-          path: node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          path: |
+            node_modules
+            ~/.docker/cli-plugins
+          key: ${{ runner.os }}-node-docker-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-node-
+            ${{ runner.os }}-node-docker-
 
       - name: Install Dependencies
         if: steps.cache-nodemodules.outputs.cache-hit != 'true'
-        run: npm ci
+        run: |
+          npm ci
+          mkdir -p ~/.docker/cli-plugins
+          sudo apt-get update
+          sudo apt-get install -y docker-compose
 
   test:
     needs: build
@@ -43,20 +50,16 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Install Docker Compose
-        if: needs.install.outputs.cache-hit != 'true'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y docker-compose
-
       - name: Restore cache
         uses: actions/cache@v2
         with:
-          path: node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          path: |
+            node_modules
+            ~/.docker/cli-plugins
+          key: ${{ runner.os }}-node-docker-${{ hashFiles('**/package-lock.json') }}
 
       - name: Run tests
-        if: needs.install.outputs.cache-hit != 'true'
+        if: needs.build.outputs.cache-hit != 'true'
         run: npm test
 
   test-nestjs:
@@ -65,20 +68,16 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Install Docker Compose
-        if: needs.install.outputs.cache-hit != 'true'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y docker-compose
-
       - name: Restore cache
         uses: actions/cache@v2
         with:
-          path: node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          path: |
+            node_modules
+            ~/.docker/cli-plugins
+          key: ${{ runner.os }}-node-docker-${{ hashFiles('**/package-lock.json') }}
 
       - name: Run NestJS tests
-        if: needs.install.outputs.cache-hit != 'true'
+        if: needs.build.outputs.cache-hit != 'true'
         run: npm run test:nestjs
 
   test-mocha:
@@ -87,18 +86,14 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Install Docker Compose
-        if: needs.install.outputs.cache-hit != 'true'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y docker-compose
-
       - name: Restore cache
         uses: actions/cache@v2
         with:
-          path: node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          path: |
+            node_modules
+            ~/.docker/cli-plugins
+          key: ${{ runner.os }}-node-docker-${{ hashFiles('**/package-lock.json') }}
 
       - name: Run Mocha tests
-        if: needs.install.outputs.cache-hit != 'true'
+        if: needs.build.outputs.cache-hit != 'true'
         run: npm run test:mocha
