@@ -1,5 +1,6 @@
 # Running the example app
 
+
 ## Prerequisites
 
 1. Docker
